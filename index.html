@@ -1,0 +1,160 @@
+# index.html
+Just your username you will see your role and rank
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENLAYER ROLE CHECKER</title>
+    <style>
+        :root { --discord: #5865F2; --bg: #0d1117; --card: #161b22; }
+        body { font-family: 'Arial Black', 'Impact', sans-serif; background: var(--bg); color: white; text-align: center; padding: 15px; margin: 0; }
+        
+        /* 1. BOLD ROLE LEGEND */
+        .legend-box { background: #000; border: 2px solid #30363d; padding: 20px; border-radius: 15px; max-width: 550px; margin: 10px auto 30px auto; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .lg-item { display: block; font-size: 1.2rem; margin: 10px 0; letter-spacing: 1px; border-left: 5px solid; padding-left: 15px; }
+        
+        /* Legend Colors */
+        .mol { color: #FFFF00; border-color: #FFFF00; } /* Yellow */
+        .neu { color: #FF9900; border-color: #FF9900; } /* Orange */
+        .syn { color: #00D2FF; border-color: #00D2FF; } /* Blue */
+        .bra { color: #CC00FF; border-color: #CC00FF; } /* Purple */
+        .sin { color: #33FF33; border-color: #33FF33; } /* Green */
+
+        /* 2. SEARCH BOX */
+        .search-area { max-width: 550px; margin: auto; background: var(--card); padding: 40px 20px; border-radius: 25px; border: 4px solid var(--discord); position: relative; }
+        h1 { margin: 0 0 20px 0; font-size: 2.2rem; text-transform: uppercase; letter-spacing: -1px; }
+        input { width: 88%; padding: 18px; border-radius: 12px; border: 3px solid #30363d; background: #010409; color: white; font-size: 1.3rem; font-weight: bold; text-align: center; margin-bottom: 15px; }
+        .btn-search { background: var(--discord); color: white; border: none; padding: 18px; width: 95%; border-radius: 12px; font-weight: 900; font-size: 1.4rem; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .btn-search:hover { transform: scale(1.02); filter: brightness(1.2); }
+        
+        /* AUTOCOMPLETE */
+        #suggestions { background: #1c2128; border: 3px solid var(--discord); border-radius: 12px; position: absolute; width: 90%; left: 5%; z-index: 100; display: none; margin-top: -10px; text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .s-item { padding: 15px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #30363d; font-family: sans-serif; font-weight: bold; }
+        .s-item img { width: 40px; height: 40px; border-radius: 50%; margin-right: 15px; border: 1px solid #fff; }
+
+        /* 3. MAX IMPACT RESULT CARD */
+        #result { margin-top: 35px; padding: 40px 20px; background: #000; border-radius: 25px; border: 6px solid white; display: none; animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .avatar-big { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 20px; border: 5px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .res-name { font-size: 2.8rem; font-weight: 900; display: block; text-transform: uppercase; margin-bottom: 5px; line-height: 1; }
+        .res-role-label { font-size: 1.8rem; font-weight: 900; display: block; margin-top: 10px; letter-spacing: 2px; }
+        .res-meta { font-size: 1.4rem; color: #8b949e; margin-top: 10px; font-family: sans-serif; font-weight: bold; }
+        
+        .btn-copy { background: #fff; color: #000; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 25px; font-size: 1.1rem; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="legend-box">
+        <span class="lg-item mol">MOLECULE: LEVEL 1 - 6</span>
+        <span class="lg-item neu">NEURON: LEVEL 7 - 17</span>
+        <span class="lg-item syn">SYNAPSE: LEVEL 18 - 35</span>
+        <span class="lg-item bra">BRAIN: LEVEL 36 - 53</span>
+        <span class="lg-item sin">SINGULARITY: LEVEL 54+</span>
+    </div>
+
+    <div class="search-area">
+        <h1>GENLAYER ROLE CHECKER</h1>
+        <input type="text" id="userInput" placeholder="START TYPING USERNAME..." oninput="handleTyping()" autocomplete="off">
+        <div id="suggestions"></div>
+        <button class="btn-search" onclick="doSearch()">SEARCH RANK 🔍</button>
+
+        <div id="result">
+            <img id="resImg" class="avatar-big" src="">
+            <span id="resName" class="res-name"></span>
+            <div class="res-meta">
+                RANK #<span id="resRnk">--</span> | LEVEL <span id="resLvl">--</span>
+            </div>
+            <span id="resRole" class="res-role-label">--</span>
+            <button class="btn-copy" onclick="copyStats()">📋 COPY FOR DISCORD VIRAL</button>
+        </div>
+    </div>
+
+    <script>
+        const SID = "1237055789441487021";
+        let players = [];
+
+        async function init() {
+            try {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://mee6.xyz/api/plugins/levels/leaderboard/' + SID)}`);
+                const data = await res.json();
+                players = JSON.parse(data.contents).players;
+            } catch (e) { console.error("API Error"); }
+        }
+
+        function getRoleInfo(lvl) {
+            if (lvl >= 54) return { name: "SINGULARITY", color: "#33FF33", class: "sin" };
+            if (lvl >= 36) return { name: "BRAIN", color: "#CC00FF", class: "bra" };
+            if (lvl >= 18) return { name: "SYNAPSE", color: "#00D2FF", class: "syn" };
+            if (lvl >= 7) return { name: "NEURON", color: "#FF9900", class: "neu" };
+            return { name: "MOLECULE", color: "#FFFF00", class: "mol" };
+        }
+
+        function handleTyping() {
+            const val = document.getElementById('userInput').value.toLowerCase();
+            const sBox = document.getElementById('suggestions');
+            sBox.innerHTML = "";
+            if (!val) { sBox.style.display = "none"; return; }
+
+            const matches = players.filter(p => p.username.toLowerCase().includes(val)).slice(0, 5);
+            if (matches.length > 0) {
+                sBox.style.display = "block";
+                matches.forEach(p => {
+                    const avatar = p.avatar ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`;
+                    const div = document.createElement("div");
+                    div.className = "s-item";
+                    div.innerHTML = `<img src="${avatar}"> ${p.username}`;
+                    div.onclick = () => { showUser(p); sBox.style.display = "none"; };
+                    sBox.appendChild(div);
+                });
+            } else { sBox.style.display = "none"; }
+        }
+
+        function doSearch() {
+            const val = document.getElementById('userInput').value.toLowerCase().trim();
+            const p = players.find(x => x.username.toLowerCase() === val);
+            if(p) showUser(p);
+            else alert("User not found in top leaderboard!");
+        }
+
+        function showUser(p) {
+            document.getElementById('userInput').value = p.username;
+            const role = getRoleInfo(p.level);
+            
+            const card = document.getElementById('result');
+            const nameEl = document.getElementById('resName');
+            const roleEl = document.getElementById('resRole');
+            
+            // Dynamic Styling
+            card.style.borderColor = role.color;
+            nameEl.innerText = p.username;
+            nameEl.className = "res-name " + role.class;
+            
+            document.getElementById('resLvl').innerText = p.level;
+            document.getElementById('resRnk').innerText = players.indexOf(p) + 1;
+            
+            roleEl.innerText = role.name;
+            roleEl.className = "res-role-label " + role.class;
+            
+            document.getElementById('resImg').src = p.avatar ? `https://cdn.discordapp.com/avatars/${p.id}/${p.avatar}.png` : `https://cdn.discordapp.com/embed/avatars/0.png`;
+            document.getElementById('resImg').style.borderColor = role.color;
+            
+            card.style.display = "block";
+        }
+
+        function copyStats() {
+            const name = document.getElementById('resName').innerText;
+            const lvl = document.getElementById('resLvl').innerText;
+            const rnk = document.getElementById('resRnk').innerText;
+            const role = document.getElementById('resRole').innerText;
+            const text = `🧬 **GENLAYER ROLE CHECKER**\n👤 USER: ${name}\n🏆 RANK: #${rnk} | LEVEL: ${lvl}\n✨ FORM: **${role}**\n\nCheck your rank here: ${window.location.href}`;
+            navigator.clipboard.writeText(text);
+            alert("COPIED! NOW PASTE IT IN GENLAYER DISCORD! 🚀");
+        }
+
+        init();
+    </script>
+</body>
+</html>
